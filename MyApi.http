@@ -1,0 +1,44 @@
+@MyApi_HostAddress = http://localhost:5220
+
+GET {{MyApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+POST {{MyApi_HostAddress}}/api/auth/register/
+Content-Type: application/json
+
+{
+    "Username": "jesusman22",
+    "Email": "jackson2k@yahoo.com",
+    "Password": "SecurePass123!",
+    "ConfirmPassword": "SecurePass123!",
+    "FirstName": "Jackson",
+    "LastName": "Lu"
+}
+###
+POST {{MyApi_HostAddress}}/api/auth/login/
+Content-Type: application/json
+
+{
+    "Email": "jackie123@gmail.com",
+    "Password": "Admin@123"
+}
+
+###
+
+POST {{MyApi_HostAddress}}/api/account/change-password/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqYWNraWUxMjNAZ21haWwuY29tIiwianRpIjoiMDM5MjUxNWEtYTA0Zi00ZmQ4LWIyZGEtOWM5MjdmZDUyNTQyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiJiNzM5OWQ4OS0zMzQxLTRlZGQtYjQ0Ny0yNmY2YzAxZTVmY2YiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiamFja2llbHUxMjMiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVc2VyIiwiZXhwIjoxNzUwOTgzNDI4LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjUyMjAiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjUyMjAifQ.dsw1gSo9VTfoAaq0nRVJGtwv2lXjzLQQWjM5_CCQwiY
+Content-Type: application/json
+
+{
+    "CurrentPassword": "Admin@123",
+    "NewPassword": "Admin@123!"
+}
+###
+GET {{MyApi_HostAddress}}/api/secure/admin/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqYWNrc29uMmsxMUBnbWFpbC5jb20iLCJqdGkiOiI3NDBlNTdkNC1mZjE1LTRkNTgtYmY0Zi0zYjRmZDE2ODYxMjgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImY4NDQzOTM4LTc0ZTYtNGM1Yy1iM2Q4LTZlNTQyZjM3MGM4NyIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJqYWNrc29uMmsxMSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwiZXhwIjoxNzUwNzM2MTE1LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjUyMjAiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjUyMjAifQ.jziOqQvenWvsFzZYGfrpV1YTA41LWCnzs2diIseYEPE
+###
+
+GET {{MyApi_HostAddress}}/api/profile/me/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqYWNraWUxMjNAZ21haWwuY29tIiwianRpIjoiMDM5MjUxNWEtYTA0Zi00ZmQ4LWIyZGEtOWM5MjdmZDUyNTQyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiJiNzM5OWQ4OS0zMzQxLTRlZGQtYjQ0Ny0yNmY2YzAxZTVmY2YiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiamFja2llbHUxMjMiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVc2VyIiwiZXhwIjoxNzUwOTgzNDI4LCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjUyMjAiLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjUyMjAifQ.dsw1gSo9VTfoAaq0nRVJGtwv2lXjzLQQWjM5_CCQwiY
