@@ -29,8 +29,14 @@ public class PostService(ApplicationDbContext context, NotificationService notif
             CreatedAt = DateTime.UtcNow
         };
         _context.Posts.Add(post);
+        var user = await _context.Users.FindAsync(authorId);
+        if (user != null)
+        {
+            user.PostCount += 1;
+            user.Reputation += 5;
+        }
         await _context.SaveChangesAsync();
-
+        await CheckForMentions(content, authorId, post.Id);
         if (parentPostId == null && thread.ApplicationUserId != authorId)
         {
             await _notificationService.SendNotification(
@@ -66,9 +72,60 @@ public class PostService(ApplicationDbContext context, NotificationService notif
             AuthorUsername = post.Author!.UserName ?? "Unknown",
             ThreadId = post.ThreadId,
             CreatedAt = post.CreatedAt,
+            ParentPostId = post.ParentPostId,
             LikeCount = 0,
             Replies = []
         };
+    }
+    private List<PostDto> BuildReplyTree(List<Post> allReplies, Dictionary<int, int> likeCounts, int? parentId)
+    {
+        return allReplies
+        .Where(r => r.ParentPostId == parentId)
+        .OrderBy(r => r.CreatedAt)
+        .Select(r => new PostDto
+        {
+            Id = r.Id,
+            Content = r.Content!,
+            AuthorUsername = r.Author?.UserName ?? "Unknown",
+            ThreadId = r.ThreadId,
+            ParentPostId = r.ParentPostId,
+            CreatedAt = r.CreatedAt,
+            LikeCount = likeCounts.GetValueOrDefault(r.Id, 0),
+            Replies = BuildReplyTree(allReplies, likeCounts, r.Id)
+        })
+        .ToList();
+    }
+
+
+    public async Task<List<PostDto>> GetPostsByUserAsync(string userId)
+    {
+        var posts = await _context.Posts
+            .Where(p => p.ApplicationUserId == userId)
+            .Include(p => p.Thread)
+            .ThenInclude(p => p.Author)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+        var postIds = posts.Select(p => p.Id).ToList();
+        var likeCounts = await _context.PostLikes
+            .GroupBy(pl => pl.PostId)
+            .Select(g => new { PostId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.PostId, x => x.Count);
+
+        var replies = posts
+            .Where(p => p.ParentPostId != null)
+            .ToList();
+        var postDtos = posts.Select(post => new PostDto
+        {
+            Id = post.Id,
+            Content = post.Content!,
+            AuthorUsername = post.Author?.UserName ?? "Unknown",
+            ParentPostId = post.ParentPostId,
+            ThreadId = post.ThreadId,
+            CreatedAt = post.CreatedAt,
+            LikeCount = likeCounts.GetValueOrDefault(post.Id, 0),
+            Replies = BuildReplyTree(replies, likeCounts, post.Id)
+        }).ToList();
+        return postDtos;
     }
     public async Task<List<PostDto>> GetAllPostsAsync()
     {
@@ -77,42 +134,31 @@ public class PostService(ApplicationDbContext context, NotificationService notif
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
-        var postIds = posts.Select(p => p.Id).ToList();
-
         var likeCounts = await _context.PostLikes
-            .Where(pl => postIds.Contains(pl.PostId))
             .GroupBy(pl => pl.PostId)
             .Select(g => new { PostId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.PostId, x => x.Count);
 
-        var replies = await _context.Posts
-            .Where(p => p.ParentPostId != null && postIds.Contains(p.ParentPostId.Value))
-            .Include(r => r.Author)
-            .OrderBy(r => r.CreatedAt)
-            .ToListAsync();
+        // Split replies and top-level posts
+        var replies = posts.Where(p => p.ParentPostId != null).ToList();
+        var topLevelPosts = posts.Where(p => p.ParentPostId == null).ToList();
 
-        var repliesGrouped = replies
-            .GroupBy(r => r.ParentPostId!.Value)
-            .ToDictionary(g => g.Key, g => g.Select(r => new ReplyDto
-            {
-                Id = r.Id,
-                Content = r.Content!,
-                AuthorUsername = r.Author!.UserName!,
-                CreatedAt = r.CreatedAt
-            }).ToList());
-        
-        var postDtos = posts.Select(post => new PostDto
+        // Now convert top-level posts only and build nested replies
+        var postDtos = topLevelPosts.Select(post => new PostDto
         {
             Id = post.Id,
             Content = post.Content!,
             AuthorUsername = post.Author?.UserName ?? "Unknown",
             ThreadId = post.ThreadId,
+            ParentPostId = post.ParentPostId,
             CreatedAt = post.CreatedAt,
             LikeCount = likeCounts.GetValueOrDefault(post.Id, 0),
-            Replies = repliesGrouped.GetValueOrDefault(post.Id, new List<ReplyDto>())
+            Replies = BuildReplyTree(replies, likeCounts, post.Id)
         }).ToList();
+
         return postDtos;
     }
+
     public async Task<PostDto> GetPostByIdAsync(int id)
     {
         var post = await _context.Posts
@@ -120,29 +166,26 @@ public class PostService(ApplicationDbContext context, NotificationService notif
             .Include(p => p.Thread)
             .FirstOrDefaultAsync(p => p.Id == id) ?? throw new KeyNotFoundException("Post not found");
 
-        var likeCount = await _context.PostLikes.CountAsync(pl => pl.PostId == id);
+        var likeCounts = await _context.PostLikes
+            .GroupBy(pl => pl.PostId)
+            .Select(g => new { PostId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.PostId, x => x.Count);
 
-        var replies = await _context.Posts
-            .Where(r => r.ParentPostId == id)
+        var allReplies = await _context.Posts
+            .Where(r => r.ThreadId == post.ThreadId && r.ParentPostId != null)
             .Include(r => r.Author)
-            .OrderBy(r => r.CreatedAt)
-            .Select(r => new ReplyDto
-            {
-                Id = r.Id,
-                Content = r.Content!,
-                AuthorUsername = r.Author!.UserName!,
-                CreatedAt = r.CreatedAt
-            }).ToListAsync();
-
+            .ToListAsync();
+        var nestedReplies = BuildReplyTree(allReplies, likeCounts, post.Id);
         return new PostDto
         {
             Id = post.Id,
             Content = post.Content!,
             AuthorUsername = post.Author!.UserName ?? "Unknown",
             ThreadId = post.ThreadId,
+            ParentPostId = post.ParentPostId,
             CreatedAt = post.CreatedAt,
-            LikeCount = likeCount,
-            Replies = replies
+            LikeCount = likeCounts.GetValueOrDefault(post.Id, 0),
+            Replies = nestedReplies
         };
     }
     public async Task<bool> UpdatePostAsync(int id, string content)
@@ -193,7 +236,7 @@ public class PostService(ApplicationDbContext context, NotificationService notif
         }
         await _context.SaveChangesAsync();
     }
-    public async Task<ReplyPostDto> ReplyToPostAsync(int parentPostId, string content, string authorId)
+    public async Task<PostDto> ReplyToPostAsync(int parentPostId, string content, string authorId)
     {
         var parentPost = await _context.Posts
             .Include(p => p.Thread)
@@ -207,10 +250,15 @@ public class PostService(ApplicationDbContext context, NotificationService notif
             ParentPostId = parentPostId,
             CreatedAt = DateTime.UtcNow
         };
-
         _context.Posts.Add(reply);
+        var user = await _context.Users.FindAsync(authorId);
+        if (user != null)
+        {
+            user.PostCount += 1;
+            user.Reputation += 5;
+        }
         await _context.SaveChangesAsync();
-
+        await CheckForMentions(content, authorId, reply.Id);
         if (parentPost.ApplicationUserId != authorId)
         {
             await _notificationService.SendNotification(
@@ -221,10 +269,15 @@ public class PostService(ApplicationDbContext context, NotificationService notif
                 url: $"/threads/{parentPost.ThreadId}"
             );
         }
-        return new ReplyPostDto
+        return new PostDto
         {
-            threadId = parentPost.ThreadId,
-            parentPostId = parentPostId,
+            Id = reply.Id,
+            AuthorUsername = user?.UserName ?? "Unknown",
+            ThreadId = parentPost.ThreadId,
+            ParentPostId = reply.ParentPostId,
+            CreatedAt = reply.CreatedAt,
+            LikeCount = 0,
+            Replies = [],
             Content = content
         };
     }

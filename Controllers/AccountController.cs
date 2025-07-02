@@ -5,14 +5,18 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using MyApi.Models;
+using MyApi.Services;
 namespace MyApi.Controllers;
 
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class AccountController(UserManager<ApplicationUser> userManager) : ControllerBase
+public class AccountController(UserManager<ApplicationUser> userManager, ThreadService threadService, PostService postService) : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
+
+    private readonly ThreadService _threadService = threadService;
+    private readonly PostService _postService = postService;
 
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto model)
@@ -26,5 +30,12 @@ public class AccountController(UserManager<ApplicationUser> userManager) : Contr
         if (!result.Succeeded)
             return BadRequest(result.Errors);
         return Ok("Password changed successfully.");
+    }
+    [HttpGet("activity/{userId}")]
+    public async Task<IActionResult> GetUserActivity(string userId)
+    {
+        var posts = await _postService.GetPostsByUserAsync(userId);
+        var threads = await _threadService.GetThreadsByUserAsync(userId);
+        return Ok(new UserActivityDto { Posts = posts, Threads = threads });
     }
 }

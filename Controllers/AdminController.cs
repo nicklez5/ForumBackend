@@ -11,7 +11,7 @@ namespace MyApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Policy = "RequireAdminRole")]
-public class AdminController(UserManager<ApplicationUser> userManager,NotificationService notificationService) : ControllerBase
+public class AdminController(UserManager<ApplicationUser> userManager, NotificationService notificationService) : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly NotificationService _notificationService = notificationService;
@@ -132,6 +132,28 @@ public class AdminController(UserManager<ApplicationUser> userManager,Notificati
             await _notificationService.SendNotification(user.Id, currentUser!.Id, dto.Message, NotificationType.SystemAlert);
         }
         return Ok("System alert sent to all users.");
+    }
+    [HttpGet]
+    public async Task<IActionResult> fetchAllUsers()
+    {
+        var allUsers = _userManager.Users.Select(u => new
+        {
+            Id = u.Id,
+            Email = u.Email
+        });
+        return Ok(await allUsers.ToListAsync());
+    }
+    [HttpPost("isAdmin")]
+    public async Task<IActionResult> IsUserAdmin([FromBody] SystemEmail dto)
+    {
+        var user = await _userManager.FindByEmailAsync(dto.email!);
+        var result = user!.IsModerator == true;
+        return Ok(result);
+
+    }
+    public class SystemEmail
+    {
+        public string? email { get; set; } = string.Empty;
     }
     // [HttpDelete("delete-thread/{id}")]
     // public async Task<IActionResult> DeleteThread(int id)

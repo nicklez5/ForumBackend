@@ -9,7 +9,7 @@ public class ThreadDto
 
     public int ForumId { get; set; }
     public string? ForumTitle { get; set; }
-
+    public string? ForumImageUrl { get; set; }
     public string? AuthorId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
 
@@ -36,6 +36,14 @@ public class ThreadSummaryDto
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string AuthorUsername { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+}
+public class ThreadDetailDto
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
     public string AuthorUsername { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }

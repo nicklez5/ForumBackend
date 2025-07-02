@@ -51,4 +51,12 @@ public class ForumController(ForumService forumService) : ControllerBase
         var forum = await _forumService.GetForumByIdAsync(id);
         return Ok(forum);
     }
+
+    [HttpGet("search")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Search([FromQuery] string query)
+    {
+        var result = await _forumService.SearchContentAsync(query);
+        return Ok(result);
+    }
 }

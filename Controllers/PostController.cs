@@ -23,7 +23,7 @@ public class PostController(PostService postService, UserManager<ApplicationUser
     {
         var userId = _userManager.GetUserId(User);
         if (userId == null) return Unauthorized();
-        var post = await _postService.CreatePostAsync(dto.Content, userId, dto.ThreadId);
+        var post = await _postService.CreatePostAsync(dto.Content, userId, dto.ThreadId,dto.ParentPostId);
         return Ok(post);
     }
     [HttpPut("{id}")]
@@ -83,7 +83,8 @@ public class PostController(PostService postService, UserManager<ApplicationUser
         try
         {
             await _postService.ToggleLikeAsync(id, user.Id);
-            return Ok("Post like toggled.");
+            var updatedPost = await _postService.GetPostByIdAsync(id);
+            return Ok(updatedPost);
         }
         catch (KeyNotFoundException)
         {
@@ -106,8 +107,8 @@ public class PostController(PostService postService, UserManager<ApplicationUser
 
         try
         {
-            await _postService.ReplyToPostAsync(dto.parentPostId, dto.Content, user.Id);
-            return Ok("Reply posted successfully.");
+            var result = await _postService.ReplyToPostAsync(dto.ParentPostId, dto.Content, user.Id);
+            return Ok(result);
         }
         catch (KeyNotFoundException ex)
         {

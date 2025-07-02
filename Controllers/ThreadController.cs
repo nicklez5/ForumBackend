@@ -43,6 +43,12 @@ public class ThreadController(ThreadService threadService, UserManager<Applicati
         var success = await _threadService.UpdateThreadAsync(id, dto.Title, dto.Content);
         return success ? Ok("Updated") : NotFound("Thread not found");
     }
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllThread()
+    {
+        var result = await _threadService.GetAllThreads();
+        return Ok(result);
+    }
     [HttpGet("forums/{id}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetAllThreads(int id)
@@ -50,7 +56,7 @@ public class ThreadController(ThreadService threadService, UserManager<Applicati
         var result = await _threadService.GetThreadsByForumAsync(id);
         return Ok(result);
     }
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetThreadById(int id)
     {
@@ -82,7 +88,8 @@ public class ThreadController(ThreadService threadService, UserManager<Applicati
         try
         {
             await _threadService.ToggleThreadLikeAsync(id, user.Id);
-            return Ok("Thread like toggled.");
+            var updatedThread = await _threadService.GetThreadByIdAsync(id);
+            return Ok(updatedThread);
         }
         catch (KeyNotFoundException)
         {
@@ -99,5 +106,10 @@ public class ThreadController(ThreadService threadService, UserManager<Applicati
         var count = await _threadService.GetThreadLikeCountAsync(id);
         return Ok(count);
     }
-
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchThreads([FromQuery] string sortBy)
+    {
+        var results = await _threadService.SearchThreads(sortBy);
+        return Ok(results);
+    }
 }

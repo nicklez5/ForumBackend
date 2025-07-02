@@ -3,14 +3,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MyApi.Models;
+using MyApi.Services;
 namespace MyApi.Controllers;
 
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-public class ProfileController(UserManager<ApplicationUser> userManager) : ControllerBase
+public class ProfileController(UserManager<ApplicationUser> userManager, ProfileService profileService) : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly ProfileService _profileService = profileService;
 
     [HttpPut("update")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto model)
@@ -46,6 +48,7 @@ public class ProfileController(UserManager<ApplicationUser> userManager) : Contr
 
         var profile = new UserProfileDto
         {
+            Id = user.Id,
             FirstName = user.FirstName,
             LastName = user.LastName,
             Username = user.UserName,
@@ -60,14 +63,14 @@ public class ProfileController(UserManager<ApplicationUser> userManager) : Contr
         };
         return Ok(profile);
     }
-    [HttpGet("{id}")]
-    public async Task<IActionResult> ViewProfile(int id)
+    [HttpGet("{userId}")]
+    public async Task<IActionResult> ViewProfile(string userId)
     {
-        var userId = id.ToString();
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return NotFound("User not found.");
         var profile = new UserProfileDto
         {
+            Id = user.Id,
             FirstName = user.FirstName,
             LastName = user.LastName,
             Username = user.UserName,
@@ -81,5 +84,11 @@ public class ProfileController(UserManager<ApplicationUser> userManager) : Contr
             BannedAt = user.BannedAt
         };
         return Ok(profile);
+    }
+    [HttpGet]
+    public async Task<IActionResult> ProfileList()
+    {
+        var profiles = await _profileService.GetAllUsersProfileAsync();
+        return Ok(profiles);
     }
 }

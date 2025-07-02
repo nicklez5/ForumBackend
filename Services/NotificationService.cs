@@ -117,26 +117,37 @@ public class NotificationService(ApplicationDbContext context, UserManager<Appli
             }
         }
     }
-    public async Task CheckForThreadMentionsAsync(string content, string senderId, int threadId)
+    public async Task CheckForThreadMentionsAsync(int threadId)
     {
-        var mentionPattern = @"@(\w+)";
-        var matches = Regex.Matches(content, mentionPattern);
+        var posts = await _context.Posts
+            .Where(p => p.ThreadId == threadId)
+            .Include(p => p.Author)
+            .ToListAsync();
 
-        foreach (Match match in matches)
+        foreach (var post in posts)
         {
-            var mentionedUsername = match.Groups[1].Value;
-            var recipient = await _context.Users.FirstOrDefaultAsync(u => u.UserName == mentionedUsername);
-
-            if (recipient != null && recipient.Id != senderId)
+            var mentions = ExtractMentions(post.Content ?? "");
+            foreach (var username in mentions)
             {
-                await SendNotification(
-                    recipientId: recipient.Id,
-                    senderId: senderId,
-                    message: $"You were mentioned in a thread",
-                    type: NotificationType.Mention,
-                    url: $"/threads/{threadId}"
-                );
+                var mentionedUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.UserName == username);
+
+                if (mentionedUser != null && mentionedUser.Id != post.ApplicationUserId)
+                {
+                    await SendNotification(
+                        recipientId: mentionedUser.Id,
+                        senderId: post.ApplicationUserId!,
+                        message: $"You were mentioned in a post in thread #{threadId}",
+                        type: NotificationType.Mention,
+                        url: $"/thread/{threadId}"
+                    );
+                }
             }
         }
+    }
+    private static List<string> ExtractMentions(string content)
+    {
+        var matches = Regex.Matches(content, @"@(\w+)");
+        return matches.Select(m => m.Groups[1].Value).ToList();
     }
 }

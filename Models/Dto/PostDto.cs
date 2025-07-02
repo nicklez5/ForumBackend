@@ -7,9 +7,10 @@ public class PostDto
 
     public string AuthorUsername { get; set; } = string.Empty;
 
+    public int? ParentPostId { get; set; }
     public int ThreadId { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public int LikeCount { get; set; }
-    public List<ReplyDto> Replies { get; set; } = new();
+    public List<PostDto> Replies { get; set; } = new();
 }
