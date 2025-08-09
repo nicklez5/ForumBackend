@@ -8,4 +8,6 @@ public class ReplyDto
 
     public List<ReplyDto> Replies { get; set; } = new();
     public DateTime CreatedAt { get; set; }
+
+    public IFormFile? Image { get; set; }
 }

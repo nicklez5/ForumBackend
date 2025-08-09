@@ -8,7 +8,8 @@ public enum NotificationType
     Mention,
     Like,
     ModeratorAction,
-    SystemAlert
+    SystemAlert,
+    Message
 }
 
 public class Notification

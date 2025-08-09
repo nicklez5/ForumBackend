@@ -17,6 +17,21 @@ namespace MyApi.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.6");
 
+            modelBuilder.Entity("ApplicationUserForum", b =>
+                {
+                    b.Property<int>("ForumsId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UsersId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ForumsId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("ApplicationUserForum");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -249,13 +264,21 @@ namespace MyApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ApplicationUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BannerUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("IconUrl")
+                        .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
@@ -264,7 +287,39 @@ namespace MyApi.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApplicationUserId");
+
                     b.ToTable("Forums", (string)null);
+                });
+
+            modelBuilder.Entity("MyApi.Models.Message", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Content")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("RecipientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SenderId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("MyApi.Models.Notification", b =>
@@ -316,11 +371,16 @@ namespace MyApi.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Content")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LikeCount")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("ParentPostId")
                         .HasColumnType("INTEGER");
@@ -339,9 +399,9 @@ namespace MyApi.Migrations
                     b.ToTable("Posts", (string)null);
                 });
 
-            modelBuilder.Entity("MyApi.Models.PostLike", b =>
+            modelBuilder.Entity("MyApi.Models.PostVote", b =>
                 {
-                    b.Property<string>("ApplicationUserId")
+                    b.Property<string>("UserId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("PostId")
@@ -350,14 +410,14 @@ namespace MyApi.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("LikedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<int>("Value")
+                        .HasColumnType("INTEGER");
 
-                    b.HasKey("ApplicationUserId", "PostId");
+                    b.HasKey("UserId", "PostId");
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("PostLikes");
+                    b.ToTable("PostVotes");
                 });
 
             modelBuilder.Entity("MyApi.Models.RefreshToken", b =>
@@ -384,26 +444,25 @@ namespace MyApi.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
-            modelBuilder.Entity("MyApi.Models.ThreadLike", b =>
+            modelBuilder.Entity("MyApi.Models.ThreadVote", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ApplicationUserId")
-                        .IsRequired()
+                    b.Property<string>("UserId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("ThreadId")
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("Id");
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
 
-                    b.HasIndex("ApplicationUserId");
+                    b.Property<int>("Value")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("UserId", "ThreadId");
 
                     b.HasIndex("ThreadId");
 
-                    b.ToTable("ThreadLikes");
+                    b.ToTable("ThreadVotes");
                 });
 
             modelBuilder.Entity("MyApi.Models.Threads", b =>
@@ -424,6 +483,12 @@ namespace MyApi.Migrations
                     b.Property<int>("ForumId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LikeCount")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -435,6 +500,21 @@ namespace MyApi.Migrations
                     b.HasIndex("ForumId");
 
                     b.ToTable("Threads", (string)null);
+                });
+
+            modelBuilder.Entity("ApplicationUserForum", b =>
+                {
+                    b.HasOne("MyApi.Models.Forum", null)
+                        .WithMany()
+                        .HasForeignKey("ForumsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MyApi.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -488,6 +568,33 @@ namespace MyApi.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("MyApi.Models.Forum", b =>
+                {
+                    b.HasOne("MyApi.Models.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("MyApi.Models.Message", b =>
+                {
+                    b.HasOne("MyApi.Models.ApplicationUser", "Recipient")
+                        .WithMany("ReceivedMessages")
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MyApi.Models.ApplicationUser", "Sender")
+                        .WithMany("SentMessages")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Recipient");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("MyApi.Models.Notification", b =>
                 {
                     b.HasOne("MyApi.Models.ApplicationUser", "Recipient")
@@ -530,17 +637,17 @@ namespace MyApi.Migrations
                     b.Navigation("Thread");
                 });
 
-            modelBuilder.Entity("MyApi.Models.PostLike", b =>
+            modelBuilder.Entity("MyApi.Models.PostVote", b =>
                 {
-                    b.HasOne("MyApi.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("ApplicationUserId")
+                    b.HasOne("MyApi.Models.Post", "Post")
+                        .WithMany("Votes")
+                        .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MyApi.Models.Post", "Post")
-                        .WithMany("Likes")
-                        .HasForeignKey("PostId")
+                    b.HasOne("MyApi.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -560,17 +667,17 @@ namespace MyApi.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("MyApi.Models.ThreadLike", b =>
+            modelBuilder.Entity("MyApi.Models.ThreadVote", b =>
                 {
-                    b.HasOne("MyApi.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("ApplicationUserId")
+                    b.HasOne("MyApi.Models.Threads", "Thread")
+                        .WithMany("Votes")
+                        .HasForeignKey("ThreadId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MyApi.Models.Threads", "Thread")
-                        .WithMany("Likes")
-                        .HasForeignKey("ThreadId")
+                    b.HasOne("MyApi.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -603,7 +710,11 @@ namespace MyApi.Migrations
 
                     b.Navigation("Posts");
 
+                    b.Navigation("ReceivedMessages");
+
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("SentMessages");
 
                     b.Navigation("Threads");
                 });
@@ -615,16 +726,16 @@ namespace MyApi.Migrations
 
             modelBuilder.Entity("MyApi.Models.Post", b =>
                 {
-                    b.Navigation("Likes");
-
                     b.Navigation("Replies");
+
+                    b.Navigation("Votes");
                 });
 
             modelBuilder.Entity("MyApi.Models.Threads", b =>
                 {
-                    b.Navigation("Likes");
-
                     b.Navigation("Posts");
+
+                    b.Navigation("Votes");
                 });
 #pragma warning restore 612, 618
         }

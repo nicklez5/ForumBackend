@@ -11,18 +11,19 @@ namespace MyApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Policy = "RequireAdminRole")]
-public class AdminController(UserManager<ApplicationUser> userManager, NotificationService notificationService) : ControllerBase
+public class AdminController(UserManager<ApplicationUser> userManager, NotificationService notificationService, ApplicationDbContext context) : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly NotificationService _notificationService = notificationService;
+    private readonly ApplicationDbContext _context = context;
     [HttpPost("promote")]
-    public async Task<IActionResult> PromoteToAdmin([FromQuery] string email)
+    public async Task<IActionResult> PromoteToAdmin([FromQuery] string Username)
     {
-        return await MakeAdmin(email);
+        return await MakeAdmin(Username);
     }
-    private async Task<IActionResult> MakeAdmin(string email)
+    private async Task<IActionResult> MakeAdmin(string Username)
     {
-        var user = await _userManager.FindByEmailAsync(email);
+        var user = await _userManager.FindByNameAsync(Username);
         if (user == null)
             return NotFound("User not found");
         if (await _userManager.IsInRoleAsync(user, "Admin"))
@@ -41,12 +42,12 @@ public class AdminController(UserManager<ApplicationUser> userManager, Notificat
     [HttpPost("unadmin")]
     public async Task<IActionResult> RevokeAdmin([FromBody] RevokeAdminDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Email))
-            return BadRequest("Email is required");
+        if (string.IsNullOrWhiteSpace(dto.Username))
+            return BadRequest("Username is required");
 
-        var user = await _userManager.FindByEmailAsync(dto.Email);
+        var user = await _userManager.FindByNameAsync(dto.Username);
         if (user == null)
-            return NotFound($"No user found with email: {dto.Email}");
+            return NotFound($"No user found with Username: {dto.Username}");
 
         var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
         if (!isAdmin)
@@ -71,13 +72,13 @@ public class AdminController(UserManager<ApplicationUser> userManager, Notificat
         });
     }
     [HttpPost("ban")]
-    public async Task<IActionResult> BanUser([FromQuery] string email)
+    public async Task<IActionResult> BanUser([FromQuery] string username)
     {
-        if (string.IsNullOrWhiteSpace(email))
-            return BadRequest("Email is required.");
-        var user = await _userManager.FindByEmailAsync(email);
+        if (string.IsNullOrWhiteSpace(username))
+            return BadRequest("Username is required.");
+        var user = await _userManager.FindByNameAsync(username);
         if (user == null)
-            return NotFound($"No user found with email: {email}");
+            return NotFound($"No user found with username: {username}");
         user.IsBanned = true;
         user.BannedAt = DateTime.UtcNow;
 
@@ -94,15 +95,15 @@ public class AdminController(UserManager<ApplicationUser> userManager, Notificat
         });
     }
     [HttpPost("unban")]
-    public async Task<IActionResult> UnbanUser([FromQuery] string email)
+    public async Task<IActionResult> UnbanUser([FromQuery] string username)
     {
-        if (string.IsNullOrWhiteSpace(email))
+        if (string.IsNullOrWhiteSpace(username))
         {
-            return BadRequest("Email is required");
+            return BadRequest("Username is required");
         }
-        var user = await _userManager.FindByEmailAsync(email);
+        var user = await _userManager.FindByNameAsync(username);
         if (user == null)
-            return NotFound($"User with email {email} not found.");
+            return NotFound($"User with username {username} not found.");
         if (!user.IsBanned)
         {
             return Ok("User is not currently banned.");
@@ -139,21 +140,45 @@ public class AdminController(UserManager<ApplicationUser> userManager, Notificat
         var allUsers = _userManager.Users.Select(u => new
         {
             Id = u.Id,
-            Email = u.Email
+            Username = u.UserName,
+            Email = u.Email,
+            Banned = u.IsBanned,
+            Admin = u.IsModerator,
         });
         return Ok(await allUsers.ToListAsync());
     }
     [HttpPost("isAdmin")]
     public async Task<IActionResult> IsUserAdmin([FromBody] SystemEmail dto)
     {
-        var user = await _userManager.FindByEmailAsync(dto.email!);
-        var result = user!.IsModerator == true;
-        return Ok(result);
+        if (dto == null || string.IsNullOrWhiteSpace(dto.identifier))
+            return BadRequest("Invalid identifier.");
 
+        var user = await _userManager.FindByNameAsync(dto.identifier);
+        if (user == null)
+            user = await _userManager.FindByEmailAsync(dto.identifier);
+
+        if (user == null)
+            return NotFound("User not found.");
+
+        var result = user.IsModerator == true;
+        return Ok(result);
+    }
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats()
+    {
+        var stats = new
+        {
+            UsersCount = await _userManager.Users.CountAsync(),
+            ForumsCount = await _context.Forums.CountAsync(),
+            ThreadsCount = await _context.Threads.CountAsync(),
+            PostsCount = await _context.Posts.CountAsync(),
+            MessagesCount = await _context.Messages.CountAsync()
+        };
+        return Ok(stats);
     }
     public class SystemEmail
     {
-        public string? email { get; set; } = string.Empty;
+        public string? identifier { get; set; } = string.Empty;
     }
     // [HttpDelete("delete-thread/{id}")]
     // public async Task<IActionResult> DeleteThread(int id)

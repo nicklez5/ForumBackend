@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -57,11 +58,12 @@ public class AuthController(
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto model)
     {
-        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (string.IsNullOrWhiteSpace(model.Identifier))
+            return BadRequest("Username or email is required");
+        var user = await _userManager.FindByEmailAsync(model.Identifier);
+        user ??= await _userManager.FindByNameAsync(model.Identifier);
         if (user == null)
-        {
-            return BadRequest("Invalid credentials");
-        }
+            return Unauthorized("User not found.");
         var result = await _signInManager.CheckPasswordSignInAsync(
             user, model.Password, lockoutOnFailure: false
         );
@@ -119,13 +121,15 @@ public class AuthController(
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
-        var user = await _userManager.FindByEmailAsync(dto.Email!);
+        var user = await _userManager.FindByNameAsync(dto.Username!);
         if (user == null)
         {
-            return Ok("If an account with that email exists, a reset link has been sent.");
+            return Ok("If an account with that username exists, a reset link has been sent.");
         }
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var resetLink = $"{dto.ClientUrl}?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(token)}";
+        var tokenBytes = Encoding.UTF8.GetBytes(token);
+        var encodedToken = WebEncoders.Base64UrlEncode(tokenBytes);
+        var resetLink = $"{dto.ClientUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={encodedToken}";
         await _emailService.SendEmailAsync(user.Email!, "Reset Your Password", $"Click to reset: {resetLink}");
         return Ok("If an account with that email exists, a reset link has been sent.");
     }
@@ -137,7 +141,9 @@ public class AuthController(
         {
             return BadRequest("Invalid request");
         }
-        var result = await _userManager.ResetPasswordAsync(user, dto.Token!, dto.NewPassword!);
+        var tokenBytes = WebEncoders.Base64UrlDecode(dto.Token!);
+        var decodedToken = Encoding.UTF8.GetString(tokenBytes);
+        var result = await _userManager.ResetPasswordAsync(user, decodedToken, dto.NewPassword!);
         if (!result.Succeeded)
             return BadRequest(result.Errors);
         return Ok("Password reset successful");

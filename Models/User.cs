@@ -11,7 +11,7 @@ public class ApplicationUser : IdentityUser
 
     public string? Bio { get; set; }
 
-    public string? ProfileImageUrl { get; set; }
+    public string? ProfileImageUrl { get; set; } = "https://www.redditstatic.com/avatars/avatar_default_02_FF4500.png";
 
     public DateTime DateJoined { get; set; } = DateTime.UtcNow;
 
@@ -27,6 +27,11 @@ public class ApplicationUser : IdentityUser
     public ICollection<Threads>? Threads { get; set; }
 
     public ICollection<Notification>? Notifications { get; set; }
+
+    public ICollection<Message>? SentMessages { get; set; }
+    public ICollection<Message>? ReceivedMessages { get; set; }
+
+    public ICollection<Forum>? Forums { get; set; }
 
     public List<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

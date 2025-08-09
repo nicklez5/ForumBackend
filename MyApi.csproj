@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.6">
@@ -25,4 +25,16 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.1" />
   </ItemGroup>
 
+  <Target Name="PrepublishScript" BeforeTargets="PrepareForPublish">
+  <!-- Change Client to your actual client folder name -->
+  <Exec WorkingDirectory="../FrontEnd" Command="npm install" />
+  <Exec WorkingDirectory="../FrontEnd" Command="npm run build" />
+  <!-- Copy React build into wwwroot -->
+  <RemoveDir Directories="wwwroot" />
+  <Copy SourceFiles="@(ClientBuildFiles)" DestinationFolder="wwwroot\%(RecursiveDir)" />
+</Target>
+
+<ItemGroup>
+  <ClientBuildFiles Include="../FrontEnd/build/**" />
+</ItemGroup>
 </Project>

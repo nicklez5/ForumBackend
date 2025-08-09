@@ -9,14 +9,19 @@ using MyApi.Data;
 using MyApi.Helpers;
 using MyApi.Models;
 using MyApi.Services;
-
+using Microsoft.AspNetCore.HttpOverrides;
 var builder = WebApplication.CreateBuilder(args);
+var allowedOrigins =
+    (builder.Configuration["CORS_ORIGINS"] ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IEmailService, SendGridEmailService>();
 builder.Services.AddScoped<ForumService>();
 builder.Services.AddScoped<ThreadService>();
 builder.Services.AddScoped<PostService>();
 builder.Services.AddScoped<ProfileService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
      options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -70,13 +75,29 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        if (allowedOrigins.Length == 0)
+        {
+            // No origins configured: allow only localhost (dev convenience)
+            policy.WithOrigins("http://localhost:3000")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+                  // .AllowCredentials(); // only if you use cookies; not needed for JWT Bearer
+        }
     });
 });
 // Add services to the container.
 var app = builder.Build();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+app.UseStaticFiles();
 app.UseCors("AllowFrontend");
 using (var scope = app.Services.CreateScope())
 {
@@ -86,10 +107,11 @@ using (var scope = app.Services.CreateScope())
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     await SeedData.SeedAdminUser(userManager);
 }
-
-app.MapControllers();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
+app.MapFallbackToFile("/index.html");
+
 app.Run();
 
 

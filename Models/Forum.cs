@@ -12,9 +12,12 @@ public class Forum
 
     public string? Description { get; set; }
 
-    public string? ImageUrl { get; set; }
-
+    public string? BannerUrl { get; set; }
+    public string? IconUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string? ApplicationUserId { get; set; }
+    public ApplicationUser? Author { get; set; }
+    public ICollection<Threads> Threads { get; set; }  = new List<Threads>();
 
-    public ICollection<Threads>? Threads { get; set; }
+    public ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
 }

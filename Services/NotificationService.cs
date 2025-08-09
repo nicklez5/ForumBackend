@@ -49,6 +49,27 @@ public class NotificationService(ApplicationDbContext context, UserManager<Appli
         await _context.SaveChangesAsync();
         return true;
     }
+    public async Task<List<NotificationSummaryDto>> GetSystemAlertNotifications(string userId)
+    {
+        var notifications = await _context.Notifications
+            .Where(n => n.RecipientId == userId && n.Type == NotificationType.SystemAlert && n.IsRead == false)
+            .Include(n => n.Recipient)
+            .Include(n => n.Sender)
+            .OrderByDescending(n => n.CreatedAt)
+            .ToListAsync();
+
+        return notifications.Select(notification => new NotificationSummaryDto
+        {
+            Id = notification.Id,
+            message = notification.Message ?? string.Empty,
+            recipient = notification.Recipient?.UserName ?? "Unknown",
+            sender = notification.Sender?.UserName ?? "Unknown",
+            url = notification.Url ?? string.Empty,
+            Type = notification.Type.ToString(),
+            IsRead = notification.IsRead,
+            CreatedAt = notification.CreatedAt
+        }).ToList();
+    }
     public async Task<List<NotificationSummaryDto>> GetAllNotifications(string userId)
     {
         var notifications = await _context.Notifications
@@ -65,7 +86,8 @@ public class NotificationService(ApplicationDbContext context, UserManager<Appli
             sender = notification.Sender?.UserName ?? "Unknown",
             url = notification.Url!,
             Type = notification.Type.ToString(),
-            IsRead = notification.IsRead
+            IsRead = notification.IsRead,
+            CreatedAt = notification.CreatedAt
         }).ToList();
         return notificationDtos;
     }
@@ -82,6 +104,7 @@ public class NotificationService(ApplicationDbContext context, UserManager<Appli
             message = notification.Message!,
             recipient = notification.Recipient!.UserName!,
             sender = notification.Sender!.UserName!,
+            CreatedAt = notification.CreatedAt,
             url = notification.Url!,
             Type = notification.Type.ToString(),
             IsRead = notification.IsRead
@@ -97,6 +120,8 @@ public class NotificationService(ApplicationDbContext context, UserManager<Appli
     }
     public async Task CheckForMentionsAsync(string content, string senderId, int postId)
     {
+        if (string.IsNullOrWhiteSpace(content))
+            return;
         var mentionedUsernames = Regex.Matches(content, @"@(\w+)")
             .Select(m => m.Groups[1].Value)
             .Distinct()

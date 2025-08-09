@@ -9,20 +9,20 @@ POST {{MyApi_HostAddress}}/api/auth/register/
 Content-Type: application/json
 
 {
-    "Username": "jesusman22",
-    "Email": "jackson2k@yahoo.com",
-    "Password": "SecurePass123!",
-    "ConfirmPassword": "SecurePass123!",
-    "FirstName": "Jackson",
-    "LastName": "Lu"
+    "username": "jackielu123",
+    "email": "jackie123@gmail.com",
+    "firstName": "jackie",
+    "lastName": "lu",
+    "password": "Admin@123!",
+    "confirmPassword": "Admin@123!"
 }
 ###
 POST {{MyApi_HostAddress}}/api/auth/login/
 Content-Type: application/json
 
 {
-    "Email": "jackie123@gmail.com",
-    "Password": "Admin@123!"
+    "identifier": "jackie123@gmail.com",
+    "password": "Admin@123!"
 }
 
 ###

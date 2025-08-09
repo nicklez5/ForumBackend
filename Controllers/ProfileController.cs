@@ -32,7 +32,24 @@ public class ProfileController(UserManager<ApplicationUser> userManager, Profile
             return BadRequest(result.Errors);
         return Ok("Profile updated successfully");
     }
+    [HttpPost("upload-profile-image")]
+    public async Task<IActionResult> UploadProfileImage(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("No file uploaded.");
 
+        var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot","uploads");
+        if (!Directory.Exists(uploadsFolder))
+            Directory.CreateDirectory(uploadsFolder);
+        var filePath = Path.Combine(uploadsFolder, fileName);
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+        var fileUrl = $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
+        return Ok(new { url = fileUrl });
+    }
     [HttpGet("me")]
     public async Task<IActionResult> GetMyProfile()
     {
@@ -52,6 +69,7 @@ public class ProfileController(UserManager<ApplicationUser> userManager, Profile
             FirstName = user.FirstName,
             LastName = user.LastName,
             Username = user.UserName,
+            Email = user.Email,
             Bio = user.Bio,
             ProfileImageUrl = user.ProfileImageUrl,
             DateJoined = user.DateJoined,
@@ -74,6 +92,7 @@ public class ProfileController(UserManager<ApplicationUser> userManager, Profile
             FirstName = user.FirstName,
             LastName = user.LastName,
             Username = user.UserName,
+            Email = user.Email,
             Bio = user.Bio,
             ProfileImageUrl = user.ProfileImageUrl,
             DateJoined = user.DateJoined,

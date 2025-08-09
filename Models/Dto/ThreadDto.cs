@@ -6,10 +6,10 @@ public class ThreadDto
     public string Title { get; set; } = string.Empty;
 
     public string? Content { get; set; }
-
+    public string? ImageUrl { get; set; }
     public int ForumId { get; set; }
     public string? ForumTitle { get; set; }
-    public string? ForumImageUrl { get; set; }
+    public string? ForumIconUrl { get; set; }
     public string? AuthorId { get; set; }
     public string AuthorUsername { get; set; } = string.Empty;
 
@@ -17,6 +17,7 @@ public class ThreadDto
 
     public int LikeCount { get; set; }
 
+    public int UserVote { get; set; }
     public List<PostDto>? Posts { get; set; }
 
     public DateTime CreatedAt { get; set; }

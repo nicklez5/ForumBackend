@@ -10,6 +10,8 @@ public class NotificationDto
     public string url { get; set; } = string.Empty;
 
     public string Type { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
  }
 public class NotificationSummaryDto
 {
@@ -24,4 +26,6 @@ public class NotificationSummaryDto
     public string Type { get; set; } = string.Empty;
 
     public bool IsRead { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
  }

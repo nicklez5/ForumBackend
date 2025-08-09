@@ -54,4 +54,12 @@ public class NotificationController(NotificationService notificationService, Use
         await _notificationService.SendNotification(dto.recipientId, user.Id, dto.message, typeEnum, dto.url);
         return Ok("Notification sent");
     }
+    [HttpGet("systemalert")]
+    public async Task<IActionResult> GetSystemAlerts()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+        var notifications = await _notificationService.GetSystemAlertNotifications(user.Id);
+        return Ok(notifications);
+    }
 }
